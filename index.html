@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content">
+<title>DRIFT X Gamepad</title>
+<meta name="theme-color" content="#05050a">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="DX Pad">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%238b3dff'/%3E%3Ccircle cx='32' cy='32' r='14' fill='none' stroke='white' stroke-width='5'/%3E%3C/svg%3E">
+<style>
+:root{--a1:#8b3dff;--a2:#c08bff;--aline:rgba(139,61,255,.6);--aglow:rgba(139,61,255,.4);--afaint:rgba(139,61,255,.14);--bg:#05050a;--k:44px;--ui:1;
+  --sat:env(safe-area-inset-top,0px);--sar:env(safe-area-inset-right,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:none}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none;position:fixed;inset:0;width:100%}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+svg{display:block}
+#bgfx{position:fixed;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 0%,var(--afaint),transparent 60%),radial-gradient(90% 70% at 50% 110%,var(--afaint),transparent 65%);opacity:0;transition:opacity .4s}
+.tint #bgfx{opacity:1}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;gap:calc(6px*var(--ui));padding:calc(max(var(--sat),6px)) calc(max(var(--sar),10px)) calc(max(var(--sab),6px)) calc(max(var(--sal),10px));
+  --k:clamp(34px,min(calc(11.6vh*var(--ui)),calc(6.3vw*var(--ui))),calc(60px*var(--ui)))}
+/* top strip */
+#top{display:flex;align-items:center;gap:calc(var(--k)*.22);height:calc(var(--k)*.82);flex:none}
+.chip{height:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 calc(var(--k)*.36);border-radius:999px;border:1.5px solid var(--aline);background:linear-gradient(180deg,var(--afaint),transparent);font-size:calc(var(--k)*.26);font-weight:800;letter-spacing:.14em;white-space:nowrap;color:#fff;min-width:0}
+.chip small{opacity:.7;font-weight:700}
+#conn{flex:1.4;max-width:46%;margin:0 auto}
+#conn.ok{border-color:#43e08a;color:#43e08a;background:linear-gradient(180deg,rgba(67,224,138,.16),transparent)}
+#conn.wait{border-color:#ffb21a;color:#ffb21a;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.55}}
+#top .sp{flex:1}
+#top .rb{width:calc(var(--k)*.82);height:calc(var(--k)*.82)}
+/* main */
+#main{flex:1;min-height:0;display:flex;gap:calc(var(--k)*.2)}
+.swap #main{flex-direction:row-reverse}
+.side{display:flex;flex-direction:column;gap:calc(var(--k)*.16);min-width:0;min-height:0}
+#L{flex:1.25}#R{flex:1}#C{flex:1.55;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:calc(var(--k)*.12);min-width:0;min-height:0}
+.bars{flex:1;min-height:0;display:flex;gap:calc(var(--k)*.2)}
+.bar{position:relative;flex:1;min-width:0;border-radius:calc(var(--k)*1.1);overflow:hidden;border:1.6px solid var(--aline);background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01));touch-action:none;transition:box-shadow .15s,border-color .15s}
+#bThr{flex:1.35}
+.bar.on{box-shadow:0 0 calc(var(--k)*.5) var(--aglow),inset 0 0 calc(var(--k)*.4) var(--afaint);border-color:var(--a2)}
+.bar .fill{position:absolute;inset:0;transform-origin:50% 0;transform:scaleY(0);background:linear-gradient(180deg,var(--a2),var(--a1));will-change:transform;opacity:.95}
+.dirup .bar .fill{transform-origin:50% 100%}
+.bar .lbl{position:absolute;left:0;right:0;bottom:calc(var(--k)*.28);text-align:center;pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,.7);line-height:1.15}
+.dirup .bar .lbl{bottom:auto;top:calc(var(--k)*.28)}
+.bar .lbl small{display:block;font-size:calc(var(--k)*.24);font-weight:800;letter-spacing:.12em;opacity:.95}
+.bar .lbl b{display:block;font-size:calc(var(--k)*.52);font-weight:800;font-variant-numeric:tabular-nums}
+.outline .bar .fill{opacity:.8}
+/* round buttons */
+.rb{width:var(--k);height:var(--k);border-radius:50%;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;border:1.6px solid var(--aline);background:linear-gradient(180deg,var(--a2),var(--a1));color:#fff;touch-action:none;box-shadow:0 calc(var(--k)*.07) calc(var(--k)*.18) rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .06s,filter .06s}
+.outline .rb{background:rgba(255,255,255,.03);box-shadow:none}
+.rb.press,.rb.on{transform:scale(.9);filter:brightness(1.3);box-shadow:0 0 calc(var(--k)*.5) var(--aglow)}
+.rb svg{width:46%;height:46%}
+.rb .l{font-size:calc(var(--k)*.4);font-weight:800;line-height:1}
+.rb .s{font-size:calc(var(--k)*.17);font-weight:800;letter-spacing:.04em;opacity:.85;margin-top:1px;line-height:1;white-space:nowrap}
+.cap{position:absolute;left:50%;top:100%;transform:translateX(-50%);font-size:calc(var(--k)*.2);font-weight:800;letter-spacing:.08em;margin-top:2px;opacity:.85;white-space:nowrap;pointer-events:none}
+.row{display:flex;align-items:flex-start;justify-content:space-around;gap:calc(var(--k)*.12);flex:none;padding-bottom:calc(var(--k)*.28)}
+.row .rb.sm{width:calc(var(--k)*.9);height:calc(var(--k)*.9)}
+/* gauge */
+#gauge{position:relative;width:min(100%,calc(var(--k)*5.1));aspect-ratio:200/128;flex:1 1 auto;min-height:0;max-height:calc(var(--k)*3.3);touch-action:none}
+#gauge svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#deg{position:absolute;left:0;right:0;top:46%;transform:translateY(-50%);text-align:center;font-size:calc(var(--k)*1.05);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;pointer-events:none}
+#deg sup{font-size:.45em;vertical-align:top;opacity:.7}
+#hint{position:absolute;left:0;right:0;bottom:8%;text-align:center;font-size:calc(var(--k)*.19);font-weight:800;letter-spacing:.14em;opacity:.5;pointer-events:none}
+#padname{flex:none;width:min(100%,calc(var(--k)*4.4));height:calc(var(--k)*.62);border-radius:999px;border:1.6px solid var(--aline);background:linear-gradient(180deg,var(--a2),var(--a1));display:flex;align-items:center;justify-content:center;font-size:calc(var(--k)*.24);font-weight:800;letter-spacing:.18em;box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+.outline #padname{background:rgba(255,255,255,.03)}
+#lock{position:absolute;right:2%;bottom:4%;width:calc(var(--k)*.62);height:calc(var(--k)*.62);display:flex;align-items:center;justify-content:center;opacity:.75;border-radius:50%}
+#lock.on{opacity:1;color:#ffb21a;background:rgba(255,178,26,.15)}
+#lock svg{width:70%;height:70%}
+.ctl{flex:none;display:flex;align-items:center;justify-content:space-between;width:100%;gap:calc(var(--k)*.1);padding-bottom:calc(var(--k)*.04)}
+.dpad{display:grid;grid-template-columns:repeat(3,var(--kk));grid-template-rows:repeat(3,var(--kk));--kk:calc(var(--k)*.82);gap:2px}
+.dpad .rb{width:var(--kk);height:var(--kk)}
+.dpad .du{grid-area:1/2}.dpad .dl{grid-area:2/1}.dpad .dd{grid-area:2/2}.dpad .dr{grid-area:2/3}
+.face{display:grid;grid-template-columns:repeat(3,var(--kk));grid-template-rows:repeat(3,var(--kk));--kk:calc(var(--k)*.86);gap:0}
+.face .rb{width:var(--kk);height:var(--kk)}
+.face .fy{grid-area:1/2}.face .fx{grid-area:2/1}.face .fb{grid-area:2/3}.face .fa{grid-area:3/2}
+.face .rb{transform:none}.face .rb.press{transform:scale(.9)}
+.inmenu .bar{opacity:.4}.inmenu .dpad .rb,.inmenu .face .fa,.inmenu .face .fb{box-shadow:0 0 calc(var(--k)*.4) var(--aglow);border-color:#fff}
+/* sheets */
+.sheet{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;background:rgba(2,2,6,.8);padding:calc(max(var(--sat),10px)) calc(max(var(--sar),12px)) calc(max(var(--sab),10px)) calc(max(var(--sal),12px))}
+.sheet.show{display:flex}
+.card{width:min(860px,100%);max-height:100%;overflow:auto;background:linear-gradient(180deg,#14141f,#0c0c14);border:1.5px solid var(--aline);border-radius:20px;padding:16px 18px;touch-action:pan-y;-webkit-overflow-scrolling:touch;box-shadow:0 20px 70px rgba(0,0,0,.7)}
+.card *{touch-action:manipulation}
+.card h2{margin:0 0 2px;font-size:15px;letter-spacing:.2em;color:var(--a2)}
+.card p{margin:4px 0 10px;font-size:12.5px;line-height:1.45;opacity:.78}
+.hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.x{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 18px;border-radius:12px;font-size:12px;font-weight:800;letter-spacing:.1em;background:linear-gradient(180deg,var(--a2),var(--a1));color:#fff}
+.btn.g{background:rgba(255,255,255,.09)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:4px 26px}
+.sec{grid-column:1/-1;margin:12px 0 2px;font-size:11px;font-weight:800;letter-spacing:.2em;color:var(--a2);border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:5px}
+.it{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;min-height:44px;font-size:13px}
+.it>span{flex:1;min-width:0}
+.it .v{opacity:.65;font-variant-numeric:tabular-nums;min-width:44px;text-align:right;font-size:12px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:44%;height:30px;background:transparent;touch-action:pan-y}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:9px;background:rgba(255,255,255,.16)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-9px;border-radius:50%;background:linear-gradient(180deg,var(--a2),var(--a1));border:2px solid #fff}
+input[type=range]::-moz-range-track{height:6px;border-radius:9px;background:rgba(255,255,255,.16)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--a1);border:2px solid #fff}
+.seg{display:flex;background:rgba(255,255,255,.08);border-radius:10px;padding:3px;gap:2px}
+.seg button{padding:8px 11px;border-radius:8px;font-size:10.5px;font-weight:800;letter-spacing:.07em;opacity:.7}
+.seg button.on{background:linear-gradient(180deg,var(--a2),var(--a1));opacity:1}
+.tog{width:50px;height:28px;border-radius:99px;background:rgba(255,255,255,.16);position:relative;transition:background .15s;flex:none}
+.tog::after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .15s}
+.tog.on{background:var(--a1)}.tog.on::after{transform:translateX(22px)}
+.sw{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end}
+.sw button{width:30px;height:30px;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+.sw button.on{border-color:#fff;box-shadow:0 0 12px var(--a2)}
+.sw input[type=color]{width:30px;height:30px;padding:0;border:0;border-radius:50%;background:none}
+#codeIn{width:100%;font:800 clamp(34px,9vh,54px)/1.1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.3em;text-align:center;background:rgba(255,255,255,.06);border:1.5px solid var(--aline);border-radius:14px;color:#fff;padding:8px 4px 8px .3em;outline:none;-webkit-user-select:text;user-select:text;touch-action:manipulation}
+#srvIn{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);border-radius:10px;color:#fff;padding:10px;font-size:13px;outline:none;-webkit-user-select:text;user-select:text;touch-action:manipulation}
+.cwrap{display:flex;gap:22px;align-items:center;flex-wrap:wrap}.cwrap>div{flex:1 1 260px;min-width:0}
+.logo{font-weight:900;font-size:clamp(26px,7vh,40px);letter-spacing:.06em;line-height:1}.logo b{color:var(--a2)}
+#msg{font-size:12px;font-weight:700;margin:8px 0;min-height:18px;letter-spacing:.04em}
+#msg.err{color:#ff6b6b}#msg.ok{color:#43e08a}#msg.wait{color:#ffb21a}
+#toast{position:fixed;left:50%;top:calc(max(var(--sat),8px) + 52px);transform:translate(-50%,-14px);background:rgba(20,20,30,.94);border:1.5px solid var(--aline);padding:9px 16px;border-radius:99px;font-size:12px;font-weight:800;letter-spacing:.1em;opacity:0;pointer-events:none;transition:.25s;z-index:40;white-space:nowrap}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#rot{position:fixed;inset:0;z-index:50;background:#05050a;display:none;align-items:center;justify-content:center;text-align:center;padding:30px;font-weight:700;letter-spacing:.05em;line-height:1.6}
+#rot svg{width:70px;height:70px;margin:0 auto 14px;animation:rot 2s ease-in-out infinite}
+@keyframes rot{0%,30%{transform:rotate(0)}70%,100%{transform:rotate(-90deg)}}
+@media (orientation:portrait){#rot{display:flex}}
+@media (max-height:340px){.row{padding-bottom:calc(var(--k)*.16)}#gauge{max-height:calc(var(--k)*2.6)}}
+</style>
+</head>
+<body>
+<div id="bgfx"></div>
+<div id="app">
+  <div id="top">
+    <button class="rb sm" id="bMenu" data-ev="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <button class="rb sm" id="bMap" data-ev="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg></button>
+    <span class="sp"></span>
+    <button class="chip" id="conn"><span id="connT">CONNECT</span></button>
+    <span class="sp"></span>
+    <div class="chip" id="spd"><span id="spdV">0</span><small>KM/H</small></div>
+    <button class="rb sm" id="bSetup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </div>
+  <div id="main">
+    <div class="side" id="L">
+      <div class="bars">
+        <div class="bar" id="bBrk" data-p="b"><i class="fill"></i><div class="lbl"><small>BRAKE</small><b>0</b></div></div>
+        <div class="bar" id="bHnd" data-p="h"><i class="fill"></i><div class="lbl"><small>H-BRAKE</small><b>0</b></div></div>
+      </div>
+      <div class="row">
+        <button class="rb sm" data-ev="lights"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M13 5a7 7 0 0 0 0 14c1.6 0 2.8-3.1 2.8-7S14.600 5 13 5z"/><path d="M3 8h5M2 12h6M3 16h5"/></svg><span class="cap">LIGHTS</span></button>
+        <button class="rb sm" data-ev="horn" data-hold="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.500v5h3.500L13 19V5L7.500 9.500z"/><path d="M16.500 8.500a5 5 0 0 1 0 7M19 6a8.500 8.500 0 0 1 0 12"/></svg><span class="cap">HORN</span></button>
+      </div>
+    </div>
+    <div id="C">
+      <div id="gauge">
+        <svg viewBox="0 0 200 128"><path id="gBg" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="11" stroke-linecap="round"/><path id="gFill" fill="none" stroke="var(--a2)" stroke-width="11" stroke-linecap="round"/><path d="M100 11v14" stroke="rgba(255,255,255,.55)" stroke-width="3" stroke-linecap="round"/></svg>
+        <div id="deg">0<sup>°</sup></div><div id="hint">TAP TO CENTER</div>
+<button id="lock" title="Lock steering"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
+
+      </div>
+      <div id="padname"><span id="modeT">• GYRO PAD •</span></div>
+      <div class="ctl">
+        <div class="dpad">
+          <button class="rb du" data-d="u"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg></button>
+          <button class="rb dl" data-d="l"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>
+          <button class="rb dd" data-d="d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+          <button class="rb dr" data-d="r"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+        </div>
+        <div class="face">
+          <button class="rb fy" data-ev="y"><span class="l">Y</span><span class="s" data-s="y">WEATHER</span></button>
+          <button class="rb fx" data-ev="x"><span class="l">X</span><span class="s" data-s="x">TIME</span></button>
+          <button class="rb fb" data-ev="b"><span class="l">B</span><span class="s" data-s="b">HOME</span></button>
+          <button class="rb fa" data-ev="a"><span class="l">A</span><span class="s" data-s="a">DRIFT</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="side" id="R">
+      <div class="bars"><div class="bar" id="bThr" data-p="g"><i class="fill"></i><div class="lbl"><small>THROTTLE</small><b>0</b></div></div></div>
+      <div class="row">
+        <button class="rb sm" data-ev="cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.500-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.500"/></svg><span class="cap">VIEW</span></button>
+        <button class="rb sm" id="bFs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="cap">FULL</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- connect sheet -->
+<div class="sheet" id="shConn"><div class="card" style="width:min(720px,100%)">
+  <div class="cwrap">
+    <div><div class="logo">DRIFT <b>X</b></div><div style="font-size:11px;letter-spacing:.3em;opacity:.6;margin:4px 0 12px">GYRO GAMEPAD</div>
+      <p>1. PC / laptop par game kholo aur menu mein <b>phone icon</b> dabao (ya <b>G</b> key).<br>2. Wahan jo <b>4-digit code</b> dikhe wo yahan dalo.<br>3. Phone ko steering wheel ki tarah pakro, tilt karo.</p></div>
+    <div>
+      <input id="codeIn" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off">
+      <div id="msg"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="goBtn" style="flex:1">CONNECT</button><button class="btn g" id="skipBtn">TEST OFFLINE</button></div>
+      <p style="font-size:11px;opacity:.6;margin-top:10px">Server automatically detect hoga. Game aur gamepad dono DRIFT X ke same website link se kholo.</p>
+    </div>
+  </div>
+</div></div>
+
+<!-- setup sheet -->
+<div class="sheet" id="shSet"><div class="card">
+  <div class="hd"><h2>SETUP</h2><button class="x" id="setX"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="grid" id="setGrid"></div>
+</div></div>
+
+<div id="toast"></div>
+<div id="rot"><div><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.500" width="10" height="19" rx="2.500"/><path d="M11 18.500h2"/></svg>Phone ko <b>landscape</b> mein ghumao<br><small style="opacity:.6">Rotate your phone sideways</small></div></div>
+
+<script>
+'use strict';
+(() => {
+const $ = id => document.getElementById(id), $$ = s => [...document.querySelectorAll(s)];
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v, lerp = (a, b, t) => a + (b - a) * t;
+const wrap = a => { while (a > 180) a -= 360; while (a < -180) a += 360; return a; };
+const qs = new URLSearchParams(location.search);
+
+/* ---------------- settings ---------------- */
+const THEMES = [['Violet', '#8b3dff', '#c08bff'], ['Cyan', '#00b8e6', '#79efff'], ['Fire', '#ff5a36', '#ffb21a'], ['Emerald', '#0fc47a', '#8dfcc4'], ['Magenta', '#ff2fa0', '#ff9ad6'], ['Gold', '#e5a800', '#fff0a0'], ['Crimson', '#e01d3d', '#ff8a9a'], ['Ice', '#8fa3c8', '#ffffff']];
+const DEF = { code:'', server:'', theme:0, custom:'', mode:'gyro', range:40, dz:1.5, curve:1.15, smooth:55, inv:false, pmode:'an', pdir:'down', pcurve:1, haptic:true, awake:true, style:'fill', bgs:'oled', ui:100, swap:false };
+let S = Object.assign({}, DEF); try { Object.assign(S, JSON.parse(localStorage.getItem('dxpad') || '{}')); } catch (e) {}
+const save = () => { try { localStorage.setItem('dxpad', JSON.stringify(S)); } catch (e) {} };
+const hex2rgb = h => { h = h.replace('#', ''); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; };
+const mix = (h, t) => { const [r, g, b] = hex2rgb(h); const f = c => Math.round(lerp(c, 255, t)).toString(16).padStart(2, '0'); return '#' + f(r) + f(g) + f(b); };
+function applyTheme() {
+  let a1, a2; if (S.theme < 0 && S.custom) { a1 = S.custom; a2 = mix(S.custom, .45); } else { const t = THEMES[clamp(S.theme, 0, THEMES.length - 1)]; a1 = t[1]; a2 = t[2]; }
+  const [r, g, b] = hex2rgb(a1), st = document.documentElement.style;
+  st.setProperty('--a1', a1); st.setProperty('--a2', a2); st.setProperty('--aline', `rgba(${r},${g},${b},.62)`); st.setProperty('--aglow', `rgba(${r},${g},${b},.45)`); st.setProperty('--afaint', `rgba(${r},${g},${b},.16)`);
+  st.setProperty('--ui', S.ui / 100);
+  const app = $('app'); app.classList.toggle('outline', S.style === 'outline'); app.classList.toggle('dirup', S.pdir === 'up'); document.body.classList.toggle('tint', S.bgs === 'tint'); app.classList.toggle('swap', S.swap);
+  document.querySelector('meta[name=theme-color]').content = '#05050a';
+}
+
+/* ---------------- toast / haptics ---------------- */
+let toastT = 0; function toast(t) { const e = $('toast'); e.textContent = t; e.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => e.classList.remove('show'), 1500); }
+const buzz = ms => { if (S.haptic && navigator.vibrate) try { navigator.vibrate(ms); } catch (e) {} };
+
+/* ---------------- network ---------------- */
+const net = { ws:null, st:'off', retry:0, timer:0, rtt:0, pingAt:0, sent:0, hz:0, hzT:performance.now(), game:{ m:0, sp:0, dr:0 }, joinTimer:0, want:false, t0:0 };
+const baseUrl = () => (/^https?:$/.test(location.protocol) ? location.origin : '');
+function setSt(st) {
+  net.st = st; const c = $('conn'), t = $('connT'); c.className = 'chip' + (st === 'ok' ? ' ok' : st === 'off' ? '' : ' wait');
+  t.textContent = st === 'ok' ? 'CONNECTED' : st === 'off' ? 'CONNECT' : st === 'join' ? 'FINDING GAME...' : st === 'wake' ? 'SERVER WAKING UP...' : 'CONNECTING...';
+  const m = $('msg'); if (m) { m.className = st === 'ok' ? 'ok' : st === 'off' ? '' : 'wait'; m.textContent = st === 'ok' ? 'Connected to the game' : st === 'join' ? 'Game nahi mila - code check karo, game kholo aur phone icon dabao. Retrying...' : st === 'wake' ? 'Free server so raha tha, 30-60 sec lagenge...' : st === 'conn' ? 'Connecting...' : ''; }
+}
+function netStart() {
+  net.want = true; clearTimeout(net.timer); if (net.ws) { try { net.ws.onclose = null; net.ws.close(); } catch (e) {} net.ws = null; }
+  const b = baseUrl(); if (!b) { setSt('off'); $('msg').className = 'err'; $('msg').textContent = 'Gamepad ko DRIFT X ki live website link se kholo — local file se connect nahi hoga.'; return; }
+  if (!S.code || S.code.length !== 4) { setSt('off'); return; }
+  setSt(net.retry > 1 ? 'wake' : 'conn'); let ws; try { ws = new WebSocket(b.replace(/^http/i, 'ws') + '/ws'); } catch (e) { return retry(); }
+  net.ws = ws; const dead = setTimeout(() => { if (ws.readyState !== 1) try { ws.close(); } catch (e) {} }, 15000);
+  ws.onopen = () => { clearTimeout(dead); net.retry = 0; setSt('join'); joinNow(); clearInterval(net.pingI); net.pingI = setInterval(ping, 2500); };
+  ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } onNet(m); };
+  ws.onclose = () => { clearTimeout(dead); clearInterval(net.pingI); if (net.ws !== ws) return; net.ws = null; if (net.want) retry(); };
+  ws.onerror = () => { try { ws.close(); } catch (e) {} };
+}
+function retry() { setSt(net.retry > 1 ? 'wake' : 'conn'); net.timer = setTimeout(netStart, Math.min(5000, 700 * Math.pow(1.5, net.retry++))); }
+function joinNow() { tx({ t:'pj', code:S.code }); }
+function ping() { net.pingAt = performance.now(); tx({ t:'pp' }); }
+function tx(o) { const ws = net.ws; if (ws && ws.readyState === 1) { try { ws.send(JSON.stringify(o)); return true; } catch (e) {} } return false; }
+function onNet(m) {
+  if (m.t === 'pjo') { clearTimeout(net.joinTimer); setSt('ok'); buzz(30); toast('CONNECTED'); closeSheet('shConn'); wake(); }
+  else if (m.t === 'pjn' || m.t === 'phx') { setSt('join'); clearTimeout(net.joinTimer); net.joinTimer = setTimeout(joinNow, 2500); }
+  else if (m.t === 'pq') net.rtt = Math.round(performance.now() - net.pingAt);
+  else if (m.t === 'pg') { net.game = m; $('spdV').textContent = m.sp | 0; $('app').classList.toggle('inmenu', m.m === 1); labels(m); }
+}
+function labels(g) {
+  const L = g.m === 1 ? { a:'OK', b:'BACK', x:'', y:'' } : g.m === 3 ? { a:'CLOSE', b:'CLOSE', x:'ZOOM +', y:'ZOOM −' } : g.m === 2 ? { a:'OK', b:'OK', x:'', y:'' } : { a:g.dr ? 'DRIFT ON' : 'DRIFT', b:'HOME', x:'TIME', y:'WEATHER' };
+  for (const k in L) { const e = document.querySelector(`[data-s=${k}]`); if (e && e.textContent !== L[k]) e.textContent = L[k]; }
+}
+function sendEvent(k) { tx({ t:'pe', k }); }
+
+/* ---------------- sensors / steering ---------------- */
+const G = 9.80665; const gy = { ok:false, ang:0, zero:0, last:0, accSign:/iP(hone|ad|od)/.test(navigator.userAgent) ? -1 : 1, gSign:1, corr:0, n:0, lastAcc:null, init:false, seenN:0, neg:0, started:false };
+function onMotion(e) {
+  const g = e.accelerationIncludingGravity, r = e.rotationRate; if (!g || g.x == null) return; gy.ok = true;
+  const now = performance.now(); let dt = (now - gy.last) / 1000; gy.last = now; if (!(dt > 0) || dt > 0.25) dt = 0.016;
+  const sa = ((screen.orientation && typeof screen.orientation.angle === 'number' ? screen.orientation.angle : (window.orientation || 0)) + 360) % 360;
+  let sx, sy, x = g.x || 0, y = g.y || 0;
+  if (sa === 90) { sx = -y; sy = x; } else if (sa === 180) { sx = -x; sy = -y; } else if (sa === 270) { sx = y; sy = -x; } else { sx = x; sy = y; }
+  sx *= gy.accSign; sy *= gy.accSign; const h = Math.hypot(sx, sy), good = h > 0.5 * G;
+  if (!gy.started && good) { gy.seenN++; if (sy < -0.35 * G) gy.neg++; if (gy.seenN === 15) { if (gy.neg > 11) gy.accSign *= -1; gy.started = true; gy.seenN = 0; gy.neg = 0; gy.init = false; } }
+  const accA = Math.atan2(-sx, sy) * 57.29578;
+  if (!gy.init) { if (good) { gy.ang = accA; gy.init = true; gy.lastAcc = accA; } return; }
+  if (r && r.alpha != null && (r.alpha !== 0 || r.beta || r.gamma)) {
+    const dG = -r.alpha * gy.gSign * dt; gy.ang += dG;
+    if (good && gy.lastAcc != null) { const dA = wrap(accA - gy.lastAcc); if (Math.abs(dG) > 0.25 && Math.abs(dA) > 0.25 && Math.abs(dA) < 25) { gy.corr = gy.corr * 0.97 + Math.sign(dG * dA) * 0.03; gy.n++; if (gy.n > 30 && gy.corr < -0.4) { gy.gSign *= -1; gy.corr = 0; gy.n = 0; } } }
+    if (good) gy.ang += wrap(accA - gy.ang) * (1 - Math.exp(-dt * 3.2));
+  } else if (good) gy.ang += wrap(accA - gy.ang) * (1 - Math.exp(-dt * 22));
+  gy.ang = wrap(gy.ang); if (good) gy.lastAcc = accA;
+}
+let sensorsOn = false;
+async function enableSensors() {
+  if (sensorsOn) return true;
+  try { if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') { const r = await DeviceMotionEvent.requestPermission(); if (r === 'denied') { toast('GYRO PERMISSION DENIED - ALLOW MOTION SENSORS'); return false; } } } catch (e) {}
+  addEventListener('devicemotion', onMotion); sensorsOn = true;
+  setTimeout(() => { if (!gy.ok && S.mode === 'gyro') toast(window.isSecureContext ? 'NO GYRO FOUND - TOUCH STEERING' : 'GYRO NEEDS HTTPS - TOUCH STEERING'); }, 1800);
+  return true;
+}
+const gyroUsable = () => S.mode === 'gyro' && gy.ok;
+function calibrate(q) { gy.zero = gy.ang; steer.y = 0; if (!q) { toast('STEERING CENTERED'); buzz(20); } }
+
+/* ---------------- state of controls ---------------- */
+const steer = { y:0, touch:0, lock:false };
+const ped = { g:{ t:0, v:0, el:$('bThr'), sh:-1 }, b:{ t:0, v:0, el:$('bBrk'), sh:-1 }, h:{ t:0, v:0, el:$('bHnd'), sh:-1 } };
+const look = { x:0, y:0 };
+const pids = {};
+$$('.bar').forEach(el => {
+  const k = el.dataset.p, P = ped[k]; P.fill = el.querySelector('.fill'); P.txt = el.querySelector('b');
+  const calc = e => { const r = el.getBoundingClientRect(); if (S.pmode === 'full') return 1; let t = (e.clientY - r.top - r.height * 0.05) / (r.height * 0.88); if (S.pdir === 'up') t = 1 - t; return clamp(t, 0, 1); };
+  el.addEventListener('pointerdown', e => { e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch (x) {} pids[e.pointerId] = k; P.t = calc(e); el.classList.add('on'); buzz(8); });
+  el.addEventListener('pointermove', e => { if (pids[e.pointerId] === k) P.t = calc(e); });
+  const up = e => { if (pids[e.pointerId] !== k) return; delete pids[e.pointerId]; P.t = 0; el.classList.remove('on'); P.v = 0; flush(); };
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => el.addEventListener(ev, up));
+});
+// steering by touch (fallback / option)
+{ const gz = $('gauge'); let pid = null, cx = 0, hw = 1;
+  gz.addEventListener('pointerdown', e => { e.preventDefault(); if (!gyroUsable()) { pid = e.pointerId; try { gz.setPointerCapture(pid); } catch (x) {} const r = gz.getBoundingClientRect(); cx = r.left + r.width / 2; hw = r.width * 0.42; steer.touch = clamp((e.clientX - cx) / hw, -1, 1); } else calibrate(); });
+  gz.addEventListener('pointermove', e => { if (e.pointerId === pid) steer.touch = clamp((e.clientX - cx) / hw, -1, 1); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => gz.addEventListener(ev, e => { if (e.pointerId === pid) { pid = null; steer.touch = 0; } })); }
+$('lock').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); steer.lock = !steer.lock; $('lock').classList.toggle('on', steer.lock); toast(steer.lock ? 'STEERING LOCKED' : 'STEERING ACTIVE'); buzz(15); });
+
+// buttons: events, D-pad (camera + menu navigation with auto-repeat), horn (hold)
+const dir = { u:0, d:0, l:0, r:0 }, reps = {};
+$$('[data-ev]').forEach(b => {
+  const k = b.dataset.ev, hold = b.dataset.hold;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) {} b.classList.add('press'); buzz(10); sendEvent(hold ? k === 'horn' ? 'h1' : k : k); if (k === 'lights') toast('HEADLIGHTS'); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => b.addEventListener(ev, () => { if (!b.classList.contains('press')) return; b.classList.remove('press'); if (k === 'horn') sendEvent('h0'); }));
+});
+$$('[data-d]').forEach(b => {
+  const k = b.dataset.d; let rt = 0, ri = 0;
+  const stop = () => { if (!b.classList.contains('press')) return; b.classList.remove('press'); dir[k] = 0; clearTimeout(rt); clearInterval(ri); look.x = dir.r - dir.l; look.y = dir.u - dir.d; flush(); };
+  b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) {} b.classList.add('press'); dir[k] = 1; buzz(8); look.x = dir.r - dir.l; look.y = dir.u - dir.d; sendEvent(k); rt = setTimeout(() => { ri = setInterval(() => sendEvent(k), 130); }, 380); flush(); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => b.addEventListener(ev, stop));
+});
+
+/* ---------------- main loop: smooth values + send ---------------- */
+let lastT = performance.now(), lastSend = 0, lastPkt = '';
+const rate = () => lerp(70, 9, S.smooth / 100);
+function steerTarget() {
+  if (steer.lock) return 0;
+  if (!gyroUsable()) return steer.touch * (S.inv ? -1 : 1);
+  const a = wrap(gy.ang - gy.zero) * (S.inv ? -1 : 1), dz = S.dz, R = Math.max(S.range, dz + 5);
+  const m = Math.max(0, Math.abs(a) - dz) / (R - dz), s = Math.pow(clamp(m, 0, 1), S.curve);
+  return a < 0 ? -s : s;
+}
+function curve(v) { return Math.pow(v, S.pcurve); }
+const gB = $('gBg'), gF = $('gFill'), degE = $('deg');
+const pt = (th, r) => { const a = th * Math.PI / 180; return [100 + r * Math.sin(a), 100 - r * Math.cos(a)]; };
+const arc = (t0, t1, r) => { const [x0, y0] = pt(t0, r), [x1, y1] = pt(t1, r); return `M${x0.toFixed(2)} ${y0.toFixed(2)}A${r} ${r} 0 ${Math.abs(t1 - t0) > 180 ? 1 : 0} ${t1 > t0 ? 1 : 0} ${x1.toFixed(2)} ${y1.toFixed(2)}`; };
+gB.setAttribute('d', arc(-115, 115, 82));
+let degShown = null;
+function frame(now) {
+  requestAnimationFrame(frame); let dt = Math.min(0.05, (now - lastT) / 1000); lastT = now; if (dt <= 0) return;
+  // steering
+  const tg = steerTarget(); steer.y += (tg - steer.y) * (1 - Math.exp(-dt * (rate() + 100 * Math.abs(tg - steer.y)))); if (Math.abs(steer.y) < 0.0005 && tg === 0) steer.y = 0;
+  // pedals (instant attack feel, soft release)
+  for (const k in ped) { const P = ped[k], tt = curve(P.t); P.v += (tt - P.v) * (1 - Math.exp(-dt * (tt > P.v ? 40 : 22))); if (P.v < 0.004 && tt === 0) P.v = 0;
+    const sc = Math.round(P.v * 1000) / 1000; if (sc !== P.sh) { P.sh = sc; P.fill.style.transform = `scaleY(${sc})`; const n = Math.round(P.v * 100); if (P.txt.textContent != n) P.txt.textContent = n; } }
+  // gauge
+  const th = steer.y * 115; gF.setAttribute('d', Math.abs(th) < 0.6 ? '' : arc(0, th, 82));
+  const dg = Math.round(gyroUsable() ? wrap(gy.ang - gy.zero) * (S.inv ? -1 : 1) : steer.y * S.range); if (dg !== degShown) { degShown = dg; degE.innerHTML = dg + '<sup>°</sup>'; }
+  // send
+  if (now - lastSend >= 15.5) {
+    const pkt = { t:'pi', s:+steer.y.toFixed(3), g:+ped.g.v.toFixed(3), b:+ped.b.v.toFixed(3), h:+ped.h.v.toFixed(3), lx:look.x, ly:look.y }, key = pkt.s + '|' + pkt.g + '|' + pkt.b + '|' + pkt.h + '|' + pkt.lx + '|' + pkt.ly;
+    if (key !== lastPkt || now - lastSend > 200) { const ws = net.ws; if (ws && ws.readyState === 1 && ws.bufferedAmount < 4096 && net.st === 'ok') { lastSend = now; lastPkt = key; try { ws.send(JSON.stringify(pkt)); net.sent++; } catch (e) {} } }
+  }
+  if (now - net.hzT > 1000) { net.hz = Math.round(net.sent * 1000 / (now - net.hzT)); net.sent = 0; net.hzT = now; if (net.st === 'ok') $('modeT').textContent = (net.hz || 0) + ' Hz · ' + net.rtt + ' ms'; else $('modeT').textContent = '• ' + (gyroUsable() ? 'GYRO' : 'TOUCH') + ' PAD •'; $('hint').textContent = gyroUsable() ? 'TAP TO CENTER' : 'DRAG TO STEER'; }
+}
+function flush() { lastSend = 0; }
+requestAnimationFrame(t => { lastT = t; frame(t); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { for (const k in ped) { ped[k].t = 0; ped[k].v = 0; } look.x = look.y = 0; steer.touch = 0; tx({ t:'pi', s:0, g:0, b:0, h:0, lx:0, ly:0 }); } else if (S.awake) wake(); });
+
+/* ---------------- fullscreen / wake / install ---------------- */
+let wl = null; async function wake() { if (!S.awake || !navigator.wakeLock) return; try { wl = await navigator.wakeLock.request('screen'); } catch (e) {} }
+async function goFull() { const de = document.documentElement, rq = de.requestFullscreen || de.webkitRequestFullscreen; try { if (rq && !document.fullscreenElement && !document.webkitFullscreenElement) await rq.call(de, { navigationUI:'hide' }); } catch (e) {} try { await screen.orientation.lock('landscape'); } catch (e) {} }
+$('bFs').addEventListener('pointerdown', e => { e.preventDefault(); if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document); else goFull(); });
+let deferred = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; });
+addEventListener('appinstalled', () => { deferred = null; toast('INSTALLED'); });
+(function pwa() {   // manifest + icons generated here, so this stays ONE file
+  try {
+    const mk = n => { const c = document.createElement('canvas'); c.width = c.height = n; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, n, n); g.addColorStop(0, '#c08bff'); g.addColorStop(1, '#5b1fd0'); x.fillStyle = '#05050a'; x.fillRect(0, 0, n, n); x.fillStyle = g; x.beginPath(); x.roundRect(n * .12, n * .12, n * .76, n * .76, n * .18); x.fill(); x.strokeStyle = '#fff'; x.lineWidth = n * .06; x.lineCap = 'round'; x.beginPath(); x.arc(n / 2, n / 2, n * .22, 0, 7); x.stroke(); x.beginPath(); x.moveTo(n / 2, n * .28); x.lineTo(n / 2, n * .72); x.moveTo(n * .28, n / 2); x.lineTo(n * .72, n / 2); x.stroke(); return c.toDataURL('image/png'); };
+    const url = location.origin + location.pathname, m = { name:'DRIFT X Gamepad', short_name:'DX Pad', description:'Phone gyro gamepad for DRIFT X', id:url, start_url:url, scope:location.origin + '/', display:'fullscreen', display_override:['fullscreen', 'standalone'], orientation:'landscape', background_color:'#05050a', theme_color:'#05050a', icons:[{ src:mk(192), sizes:'192x192', type:'image/png', purpose:'any' }, { src:mk(512), sizes:'512x512', type:'image/png', purpose:'any' }, { src:mk(512), sizes:'512x512', type:'image/png', purpose:'maskable' }] };
+    const l = document.createElement('link'); l.rel = 'manifest'; l.href = URL.createObjectURL(new Blob([JSON.stringify(m)], { type:'application/manifest+json' })); document.head.appendChild(l);
+    const ai = document.createElement('link'); ai.rel = 'apple-touch-icon'; ai.href = mk(180); document.head.appendChild(ai);
+  } catch (e) {}
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+async function install() {
+  if (deferred) { deferred.prompt(); try { await deferred.userChoice; } catch (e) {} deferred = null; return; }
+  if (matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches) return toast('ALREADY INSTALLED');
+  const ios = /iP(hone|ad|od)/.test(navigator.userAgent);
+  alert(ios ? 'iPhone: Safari mein SHARE dabao -> "Add to Home Screen".' : 'Chrome: upar right 3-dot menu -> "Install app" ya "Add to Home screen".\n(https link se kholo, http par Chrome install nahi dikhata.)');
+}
+
+/* ---------------- sheets ---------------- */
+const openSheet = id => $(id).classList.add('show'), closeSheet = id => $(id).classList.remove('show');
+$('conn').addEventListener('click', () => { $('codeIn').value = S.code; openSheet('shConn'); });
+$('skipBtn').addEventListener('click', async () => { await enableSensors(); goFull(); closeSheet('shConn'); });
+$('goBtn').addEventListener('click', async () => {
+  const c = $('codeIn').value.replace(/\D/g, '').slice(0, 4); if (c.length !== 4) { $('msg').className = 'err'; $('msg').textContent = '4-digit code dalo (game mein phone icon / G key).'; return; }
+  S.code = c; S.server = ''; save(); net.retry = 0; await enableSensors(); goFull(); netStart();
+});
+let autoConnectBusy = false;
+$('codeIn').addEventListener('input', async e => {
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+  if (e.target.value.length === 4 && !autoConnectBusy) {
+    autoConnectBusy = true;
+    $('msg').className = 'wait';
+    $('msg').textContent = 'Code complete — connecting...';
+    try {
+      const c = e.target.value;
+      S.code = c;
+      S.server = '';
+      save();
+      await enableSensors();
+      goFull();
+      net.retry = 0;
+      netStart();
+    } finally {
+      setTimeout(() => { autoConnectBusy = false; }, 1800);
+    }
+  }
+});
+$('setX').addEventListener('click', () => closeSheet('shSet'));
+$('bSetup').addEventListener('pointerdown', e => { e.preventDefault(); buildSetup(); openSheet('shSet'); });
+
+const SET = [
+  { sec:'STEERING' },
+  { k:'mode', t:'seg', l:'Steering input', o:[['gyro', 'GYRO'], ['touch', 'TOUCH']] },
+  { k:'range', t:'rng', l:'Tilt for full lock', min:15, max:90, step:1, f:v => v + '°' },
+  { k:'dz', t:'rng', l:'Dead zone', min:0, max:12, step:.5, f:v => v + '°' },
+  { k:'curve', t:'rng', l:'Response (1 = linear)', min:.6, max:2, step:.05, f:v => (+v).toFixed(2) },
+  { k:'smooth', t:'rng', l:'Smoothing', min:0, max:100, step:1, f:v => v + '%' },
+  { k:'inv', t:'tog', l:'Invert steering' },
+  { a:'cal', l:'Center steering now (hold phone straight)' },
+  { sec:'PEDALS' },
+  { k:'pmode', t:'seg', l:'Pedal mode', o:[['an', 'ANALOG'], ['full', 'FULL ON TOUCH']] },
+  { k:'pdir', t:'seg', l:'Bar fills when finger goes', o:[['down', 'DOWN'], ['up', 'UP']] },
+  { k:'pcurve', t:'rng', l:'Pedal curve', min:.6, max:2, step:.05, f:v => (+v).toFixed(2) },
+  { sec:'LOOK & FEEL' },
+  { t:'theme', l:'Theme' },
+  { k:'style', t:'seg', l:'Button style', o:[['fill', 'FILLED'], ['outline', 'OUTLINE']] },
+  { k:'bgs', t:'seg', l:'Background', o:[['oled', 'OLED BLACK'], ['tint', 'TINTED']] },
+  { k:'ui', t:'rng', l:'Controls size', min:80, max:125, step:1, f:v => v + '%' },
+  { k:'swap', t:'tog', l:'Swap left / right sides' },
+  { k:'haptic', t:'tog', l:'Vibration feedback' },
+  { k:'awake', t:'tog', l:'Keep screen awake' },
+  { sec:'APP' },
+  { a:'inst', l:'Install app / add shortcut' },
+  { a:'full', l:'Fullscreen + landscape lock' },
+  { a:'conn', l:'Enter game code' },
+  { a:'reset', l:'Reset all settings' }
+];
+function buildSetup() {
+  const g = $('setGrid'); g.innerHTML = '';
+  SET.forEach(it => {
+    if (it.sec) { const d = document.createElement('div'); d.className = 'sec'; d.textContent = it.sec; g.appendChild(d); return; }
+    const row = document.createElement('div'); row.className = 'it'; const lb = document.createElement('span'); lb.textContent = it.l; row.appendChild(lb);
+    if (it.a) { const b = document.createElement('button'); b.className = 'btn g'; b.textContent = 'GO'; row.appendChild(b); row.addEventListener('click', () => action(it.a)); row.style.cursor = 'pointer'; }
+    else if (it.t === 'seg') { const sg = document.createElement('div'); sg.className = 'seg'; it.o.forEach(o => { const b = document.createElement('button'); b.textContent = o[1]; b.className = S[it.k] === o[0] ? 'on' : ''; b.onclick = () => { S[it.k] = o[0]; save(); applyTheme(); [...sg.children].forEach(c => c.classList.toggle('on', c === b)); if (it.k === 'mode') { if (o[0] === 'gyro') enableSensors(); } }; sg.appendChild(b); }); row.appendChild(sg); }
+    else if (it.t === 'rng') { const v = document.createElement('span'); v.className = 'v'; v.textContent = it.f(S[it.k]); const r = document.createElement('input'); r.type = 'range'; r.min = it.min; r.max = it.max; r.step = it.step; r.value = S[it.k]; r.oninput = () => { S[it.k] = +r.value; v.textContent = it.f(S[it.k]); applyTheme(); }; r.onchange = save; row.appendChild(r); row.appendChild(v); }
+    else if (it.t === 'tog') { const t = document.createElement('button'); t.className = 'tog' + (S[it.k] ? ' on' : ''); t.onclick = () => { S[it.k] = !S[it.k]; t.classList.toggle('on', S[it.k]); save(); applyTheme(); if (it.k === 'awake' && S.awake) wake(); if (it.k === 'haptic' && S.haptic) buzz(25); }; row.appendChild(t); }
+    else if (it.t === 'theme') { const w = document.createElement('div'); w.className = 'sw'; THEMES.forEach((t, i) => { const b = document.createElement('button'); b.style.background = `linear-gradient(135deg,${t[2]},${t[1]})`; b.title = t[0]; b.className = S.theme === i ? 'on' : ''; b.onclick = () => { S.theme = i; save(); applyTheme(); [...w.children].forEach(c => c.classList.remove('on')); b.classList.add('on'); }; w.appendChild(b); });
+      const c = document.createElement('input'); c.type = 'color'; c.value = S.custom || '#8b3dff'; c.title = 'Custom colour'; c.oninput = () => { S.theme = -1; S.custom = c.value; applyTheme(); }; c.onchange = () => { save(); [...w.children].forEach(x => x.classList.remove('on')); }; w.appendChild(c); row.appendChild(w); }
+    g.appendChild(row);
+  });
+}
+function action(a) {
+  if (a === 'cal') { calibrate(); closeSheet('shSet'); }
+  else if (a === 'inst') install();
+  else if (a === 'full') { goFull(); closeSheet('shSet'); }
+  else if (a === 'conn') { closeSheet('shSet'); $('conn').click(); }
+  else if (a === 'reset') { if (confirm('Reset all gamepad settings?')) { const c = S.code, s = S.server; S = Object.assign({}, DEF, { code:c, server:s }); save(); applyTheme(); buildSetup(); toast('RESET'); } }
+}
+// keep the app screen from scrolling / zooming
+['gesturestart', 'gesturechange', 'contextmenu', 'dblclick'].forEach(ev => document.addEventListener(ev, e => e.preventDefault()));
+document.addEventListener('touchmove', e => { if (!e.target.closest || !e.target.closest('.card')) e.preventDefault(); }, { passive:false });
+
+/* ---------------- start ---------------- */
+applyTheme();
+if (qs.get('code')) { S.code = qs.get('code').replace(/\D/g, '').slice(0, 4); save(); }
+if (qs.get('server')) { S.server = qs.get('server'); save(); }
+$('codeIn').value = S.code;
+if (!window.isSecureContext) setTimeout(() => toast('HTTP: GYRO BLOCKED - USE HTTPS LINK'), 800);
+// first visit (or saved code): the first tap starts sensors + connection (browsers need a user gesture for gyro permission / fullscreen)
+openSheet('shConn');
+if (S.code.length === 4) { $('msg').className = 'wait'; $('msg').textContent = 'Tap CONNECT to join game ' + S.code; }
+})();
+</script>
+</body>
+</html>
