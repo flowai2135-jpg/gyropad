@@ -186,7 +186,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
       <input id="codeIn" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off">
       <div id="msg"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="goBtn" style="flex:1">CONNECT</button><button class="btn g" id="skipBtn">TEST OFFLINE</button></div>
-      <p style="font-size:11px;opacity:.6;margin-top:10px">Server automatically detect hoga. Game aur gamepad dono DRIFT X ke same website link se kholo.</p>
+      <p style="font-size:11px;opacity:.6;margin-top:10px">Relay automatically connect hoga. PC game par dikhne wala 4-digit code yahan enter karo.</p>
     </div>
   </div>
 </div></div>
@@ -230,17 +230,17 @@ const buzz = ms => { if (S.haptic && navigator.vibrate) try { navigator.vibrate(
 
 /* ---------------- network ---------------- */
 const net = { ws:null, st:'off', retry:0, timer:0, rtt:0, pingAt:0, sent:0, hz:0, hzT:performance.now(), game:{ m:0, sp:0, dr:0 }, joinTimer:0, want:false, t0:0 };
-const baseUrl = () => (/^https?:$/.test(location.protocol) ? location.origin : '');
+// Cloudflare Durable Object relay used by both the PC game and this phone pad.
+const PAD_RELAY_WS = 'wss://driftx-pad-relay.flowai2135.workers.dev/ws';
 function setSt(st) {
   net.st = st; const c = $('conn'), t = $('connT'); c.className = 'chip' + (st === 'ok' ? ' ok' : st === 'off' ? '' : ' wait');
-  t.textContent = st === 'ok' ? 'CONNECTED' : st === 'off' ? 'CONNECT' : st === 'join' ? 'FINDING GAME...' : st === 'wake' ? 'SERVER WAKING UP...' : 'CONNECTING...';
-  const m = $('msg'); if (m) { m.className = st === 'ok' ? 'ok' : st === 'off' ? '' : 'wait'; m.textContent = st === 'ok' ? 'Connected to the game' : st === 'join' ? 'Game nahi mila - code check karo, game kholo aur phone icon dabao. Retrying...' : st === 'wake' ? 'Free server so raha tha, 30-60 sec lagenge...' : st === 'conn' ? 'Connecting...' : ''; }
+  t.textContent = st === 'ok' ? 'CONNECTED' : st === 'off' ? 'CONNECT' : st === 'join' ? 'FINDING GAME...' : st === 'wake' ? 'RECONNECTING...' : 'CONNECTING...';
+  const m = $('msg'); if (m) { m.className = st === 'ok' ? 'ok' : st === 'off' ? '' : 'wait'; m.textContent = st === 'ok' ? 'Connected to the game' : st === 'join' ? 'Game nahi mila - code check karo, game kholo aur phone icon dabao. Retrying...' : st === 'wake' ? 'Relay se dobara connect ho raha hai...' : st === 'conn' ? 'Connecting...' : ''; }
 }
 function netStart() {
   net.want = true; clearTimeout(net.timer); if (net.ws) { try { net.ws.onclose = null; net.ws.close(); } catch (e) {} net.ws = null; }
-  const b = baseUrl(); if (!b) { setSt('off'); $('msg').className = 'err'; $('msg').textContent = 'Gamepad ko DRIFT X ki live website link se kholo — local file se connect nahi hoga.'; return; }
   if (!S.code || S.code.length !== 4) { setSt('off'); return; }
-  setSt(net.retry > 1 ? 'wake' : 'conn'); let ws; try { ws = new WebSocket(b.replace(/^http/i, 'ws') + '/ws'); } catch (e) { return retry(); }
+  setSt(net.retry > 1 ? 'wake' : 'conn'); let ws; try { ws = new WebSocket(PAD_RELAY_WS); } catch (e) { return retry(); }
   net.ws = ws; const dead = setTimeout(() => { if (ws.readyState !== 1) try { ws.close(); } catch (e) {} }, 15000);
   ws.onopen = () => { clearTimeout(dead); net.retry = 0; setSt('join'); joinNow(); clearInterval(net.pingI); net.pingI = setInterval(ping, 2500); };
   ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } onNet(m); };
@@ -475,7 +475,7 @@ applyTheme();
 if (qs.get('code')) { S.code = qs.get('code').replace(/\D/g, '').slice(0, 4); save(); }
 if (qs.get('server')) { S.server = qs.get('server'); save(); }
 $('codeIn').value = S.code;
-if (!window.isSecureContext) setTimeout(() => toast('HTTP: GYRO BLOCKED - USE HTTPS LINK'), 800);
+if (!window.isSecureContext) setTimeout(() => toast('GYRO NEEDS HTTPS - TOUCH STEERING AVAILABLE'), 800);
 // first visit (or saved code): the first tap starts sensors + connection (browsers need a user gesture for gyro permission / fullscreen)
 openSheet('shConn');
 if (S.code.length === 4) { $('msg').className = 'wait'; $('msg').textContent = 'Tap CONNECT to join game ' + S.code; }
