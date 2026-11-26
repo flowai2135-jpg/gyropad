@@ -38,10 +38,8 @@ svg{display:block}
 .bar{position:relative;flex:1;min-width:0;border-radius:calc(var(--k)*1.1);overflow:hidden;border:1.6px solid var(--aline);background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01));touch-action:none;transition:box-shadow .15s,border-color .15s}
 #bThr{flex:1.35}
 .bar.on{box-shadow:0 0 calc(var(--k)*.5) var(--aglow),inset 0 0 calc(var(--k)*.4) var(--afaint);border-color:var(--a2)}
-.bar .fill{position:absolute;inset:0;transform-origin:50% 0;transform:scaleY(0);background:linear-gradient(180deg,var(--a2),var(--a1));will-change:transform;opacity:.95}
-.dirup .bar .fill{transform-origin:50% 100%}
+.bar .fill{position:absolute;inset:0;transform-origin:50% 100%;transform:scaleY(0);background:linear-gradient(0deg,var(--a1),var(--a2));will-change:transform;opacity:.95;backface-visibility:hidden}
 .bar .lbl{position:absolute;left:0;right:0;bottom:calc(var(--k)*.28);text-align:center;pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,.7);line-height:1.15}
-.dirup .bar .lbl{bottom:auto;top:calc(var(--k)*.28)}
 .bar .lbl small{display:block;font-size:calc(var(--k)*.24);font-weight:800;letter-spacing:.12em;opacity:.95}
 .bar .lbl b{display:block;font-size:calc(var(--k)*.52);font-weight:800;font-variant-numeric:tabular-nums}
 .outline .bar .fill{opacity:.8}
@@ -298,12 +296,14 @@ const steer = { y:0, touch:0, lock:false };
 const ped = { g:{ t:0, v:0, el:$('bThr'), sh:-1 }, b:{ t:0, v:0, el:$('bBrk'), sh:-1 }, h:{ t:0, v:0, el:$('bHnd'), sh:-1 } };
 const look = { x:0, y:0 };
 const pids = {};
+function curve(v) { return Math.pow(v, S.pcurve); }
+function paintPed(P) { const sc = Math.round(P.v * 1000) / 1000; if (sc !== P.sh) { P.sh = sc; P.fill.style.transform = 'scaleY(' + sc + ')'; const n = Math.round(P.v * 100); if (P.txt.textContent != n) P.txt.textContent = n; } }
 $$('.bar').forEach(el => {
   const k = el.dataset.p, P = ped[k]; P.fill = el.querySelector('.fill'); P.txt = el.querySelector('b');
   const calc = e => { const r = el.getBoundingClientRect(); if (S.pmode === 'full') return 1; let t = (e.clientY - r.top - r.height * 0.05) / (r.height * 0.88); if (S.pdir === 'up') t = 1 - t; return clamp(t, 0, 1); };
-  el.addEventListener('pointerdown', e => { e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch (x) {} pids[e.pointerId] = k; P.t = calc(e); el.classList.add('on'); buzz(8); });
-  el.addEventListener('pointermove', e => { if (pids[e.pointerId] === k) P.t = calc(e); });
-  const up = e => { if (pids[e.pointerId] !== k) return; delete pids[e.pointerId]; P.t = 0; el.classList.remove('on'); P.v = 0; flush(); };
+  el.addEventListener('pointerdown', e => { e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch (x) {} pids[e.pointerId] = k; P.t = calc(e); P.v = curve(P.t); paintPed(P); flush(); el.classList.add('on'); buzz(8); });
+  el.addEventListener('pointermove', e => { if (pids[e.pointerId] !== k) return; const L = e.getCoalescedEvents ? e.getCoalescedEvents() : null; P.t = calc(L && L.length ? L[L.length - 1] : e); P.v = curve(P.t); paintPed(P); flush(); });
+  const up = e => { if (pids[e.pointerId] !== k) return; delete pids[e.pointerId]; P.t = 0; el.classList.remove('on'); P.v = 0; paintPed(P); flush(); };
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => el.addEventListener(ev, up));
 });
 // steering by touch (fallback / option)
@@ -337,7 +337,6 @@ function steerTarget() {
   const m = Math.max(0, Math.abs(a) - dz) / (R - dz), s = Math.pow(clamp(m, 0, 1), S.curve);
   return a < 0 ? -s : s;
 }
-function curve(v) { return Math.pow(v, S.pcurve); }
 const gB = $('gBg'), gF = $('gFill'), degE = $('deg');
 const pt = (th, r) => { const a = th * Math.PI / 180; return [100 + r * Math.sin(a), 100 - r * Math.cos(a)]; };
 const arc = (t0, t1, r) => { const [x0, y0] = pt(t0, r), [x1, y1] = pt(t1, r); return `M${x0.toFixed(2)} ${y0.toFixed(2)}A${r} ${r} 0 ${Math.abs(t1 - t0) > 180 ? 1 : 0} ${t1 > t0 ? 1 : 0} ${x1.toFixed(2)} ${y1.toFixed(2)}`; };
@@ -347,9 +346,8 @@ function frame(now) {
   requestAnimationFrame(frame); let dt = Math.min(0.05, (now - lastT) / 1000); lastT = now; if (dt <= 0) return;
   // steering
   const tg = steerTarget(); steer.y += (tg - steer.y) * (1 - Math.exp(-dt * (rate() + 100 * Math.abs(tg - steer.y)))); if (Math.abs(steer.y) < 0.0005 && tg === 0) steer.y = 0;
-  // pedals (instant attack feel, soft release)
-  for (const k in ped) { const P = ped[k], tt = curve(P.t); P.v += (tt - P.v) * (1 - Math.exp(-dt * (tt > P.v ? 40 : 22))); if (P.v < 0.004 && tt === 0) P.v = 0;
-    const sc = Math.round(P.v * 1000) / 1000; if (sc !== P.sh) { P.sh = sc; P.fill.style.transform = `scaleY(${sc})`; const n = Math.round(P.v * 100); if (P.txt.textContent != n) P.txt.textContent = n; } }
+  // pedals: bar follows the finger with no visible delay (the touch handlers already paint instantly; this only catches up)
+  for (const k in ped) { const P = ped[k], tt = curve(P.t); P.v += (tt - P.v) * (1 - Math.exp(-dt * 120)); if (Math.abs(tt - P.v) < 0.002) P.v = tt; if (P.v < 0.004 && tt === 0) P.v = 0; paintPed(P); }
   // gauge
   const th = steer.y * 115; gF.setAttribute('d', Math.abs(th) < 0.6 ? '' : arc(0, th, 82));
   const dg = Math.round(gyroUsable() ? wrap(gy.ang - gy.zero) * (S.inv ? -1 : 1) : steer.y * S.range); if (dg !== degShown) { degShown = dg; degE.innerHTML = dg + '<sup>°</sup>'; }
@@ -377,7 +375,6 @@ addEventListener('appinstalled', () => { deferred = null; toast('INSTALLED'); })
     const l = document.createElement('link'); l.rel = 'manifest'; l.href = URL.createObjectURL(new Blob([JSON.stringify(m)], { type:'application/manifest+json' })); document.head.appendChild(l);
     const ai = document.createElement('link'); ai.rel = 'apple-touch-icon'; ai.href = mk(180); document.head.appendChild(ai);
   } catch (e) {}
-  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
 async function install() {
   if (deferred) { deferred.prompt(); try { await deferred.userChoice; } catch (e) {} deferred = null; return; }
